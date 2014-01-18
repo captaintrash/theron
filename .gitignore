@@ -75,6 +75,16 @@ ipch/
 *.psess
 *.vsp
 
+# Visual Studio misc
+*.log
+*.tlog
+*.manifest
+*.manifest.res
+*.lastbuildstate
+*.unsuccessfulbuild
+*.rc
+*.idb
+
 # ReSharper is a .NET coding add-in
 _ReSharper*
 
