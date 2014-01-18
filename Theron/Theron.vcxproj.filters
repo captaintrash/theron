@@ -92,6 +92,9 @@
     <ClCompile Include="Clock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Directory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\Theron\Actor.h">
@@ -138,15 +141,6 @@
     </ClInclude>
     <ClInclude Include="..\Include\Theron\Detail\Alignment\MessageAlignment.h">
       <Filter>Header Files\Detail\Alignment</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Include\Theron\Detail\Directory\Directory.h">
-      <Filter>Header Files\Detail\Directory</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Include\Theron\Detail\Directory\Entry.h">
-      <Filter>Header Files\Detail\Directory</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Include\Theron\Detail\Directory\StaticDirectory.h">
-      <Filter>Header Files\Detail\Directory</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\Theron\Detail\Handlers\BlindDefaultHandler.h">
       <Filter>Header Files\Detail\Handlers</Filter>
@@ -342,6 +336,15 @@
     </ClInclude>
     <ClInclude Include="..\Include\Theron\Detail\Strings\StringHash.h">
       <Filter>Header Files\Detail\Strings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Containers\PageTable.h">
+      <Filter>Header Files\Detail\Containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Directory\Directory.h">
+      <Filter>Header Files\Detail\Directory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MailboxCollection.h">
+      <Filter>Header Files\Detail\Mailboxes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -24,7 +24,6 @@ Actor baseclass.
 #include <Theron/Framework.h>
 #include <Theron/IAllocator.h>
 
-#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/DefaultHandlerCollection.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Handlers/HandlerCollection.h>
@@ -766,7 +765,7 @@ THERON_FORCEINLINE uint32_t Actor::GetNumQueuedMessages() const
     // Get a reference to the mailbox at which this actor is registered.
     const Address address(GetAddress());
     Framework &framework(GetFramework());
-    const Detail::Mailbox &mailbox(framework.mMailboxes.GetEntry(address.AsInteger()));
+    const Detail::Mailbox &mailbox(framework.mMailboxes.GetMailbox(address.AsInteger()));
 
     return mailbox.Count();
 }

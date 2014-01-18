@@ -11,7 +11,7 @@
 #include <Theron/EndPoint.h>
 #include <Theron/Receiver.h>
 
-#include <Theron/Detail/Directory/StaticDirectory.h>
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Network/Index.h>
 #include <Theron/Detail/Network/NameGenerator.h>
 #include <Theron/Detail/Strings/String.h>
@@ -56,7 +56,7 @@ Receiver::~Receiver()
 void Receiver::Initialize()
 {
     // Register this receiver, claiming a unique address for this receiver.
-    const uint32_t receiverIndex(Detail::StaticDirectory<Receiver>::Register(this));
+    const uint32_t receiverIndex(Detail::Directory::Register(this));
 
     if (mName.IsNull())
     {
@@ -84,13 +84,6 @@ void Receiver::Initialize()
     // All frameworks have non-zero indices, so all actors have non-zero framework indices.
     const Detail::Index index(0, receiverIndex);
     mAddress = Address(mName, index);
-
-    // Register the receiver at its claimed address.
-    Detail::Entry &entry(Detail::StaticDirectory<Receiver>::GetEntry(mAddress.AsInteger()));
-
-    entry.Lock();
-    entry.SetEntity(this);
-    entry.Unlock();
 
     if (mEndPoint)
     {
@@ -121,7 +114,7 @@ void Receiver::Release()
     }
 
     // Deregister the receiver, so that the worker threads will leave it alone.
-    Detail::StaticDirectory<Receiver>::Deregister(address.AsInteger());
+    Detail::Directory::Deregister(address.AsInteger());
 
     mCondition.GetMutex().Lock();
 

@@ -8,7 +8,6 @@
 #include <Theron/IAllocator.h>
 #include <Theron/YieldStrategy.h>
 
-#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/IMessageHandler.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
 

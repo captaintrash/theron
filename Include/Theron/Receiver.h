@@ -18,7 +18,7 @@ Utility that can receive messages from actors.
 #include <Theron/Defines.h>
 
 #include <Theron/Detail/Containers/List.h>
-#include <Theron/Detail/Directory/Entry.h>
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/ReceiverHandler.h>
 #include <Theron/Detail/Handlers/IReceiverHandler.h>
 #include <Theron/Detail/Handlers/ReceiverHandlerCast.h>
@@ -78,7 +78,7 @@ The ability to synchronize with the arrival of messages via \ref Receiver::Wait 
 threads to ensure they examine the results of executed handler functions only after
 the messages they handle have arrived, and the associated handlers have been executed.
 */
-class Receiver : public Detail::Entry::Entity
+class Receiver : public Detail::Directory::Entity
 {
 public:
 

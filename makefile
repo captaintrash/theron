@@ -253,11 +253,10 @@ THERON_HEADERS = \
 	Include/Theron/Detail/Allocators/Pool.h \
 	Include/Theron/Detail/Containers/List.h \
 	Include/Theron/Detail/Containers/Map.h \
+	Include/Theron/Detail/Containers/PageTable.h \
 	Include/Theron/Detail/Containers/Queue.h \
 	Include/Theron/Detail/Debug/BuildDescriptor.h \
-	Include/Theron/Detail/Directory/Entry.h \
 	Include/Theron/Detail/Directory/Directory.h \
-	Include/Theron/Detail/Directory/StaticDirectory.h \
 	Include/Theron/Detail/Handlers/BlindDefaultHandler.h \
 	Include/Theron/Detail/Handlers/BlindFallbackHandler.h \
 	Include/Theron/Detail/Handlers/DefaultFallbackHandler.h \
@@ -275,6 +274,7 @@ THERON_HEADERS = \
 	Include/Theron/Detail/Handlers/ReceiverHandler.h \
     Include/Theron/Detail/Handlers/ReceiverHandlerCast.h \
 	Include/Theron/Detail/Mailboxes/Mailbox.h \
+	Include/Theron/Detail/Mailboxes/MailboxCollection.h \
 	Include/Theron/Detail/Scheduler/BlockingMonitor.h \
 	Include/Theron/Detail/Scheduler/Counting.h \
 	Include/Theron/Detail/Scheduler/IScheduler.h \
@@ -339,6 +339,7 @@ THERON_SOURCES = \
 	Theron/BuildDescriptor.cpp \
 	Theron/Clock.cpp \
 	Theron/DefaultHandlerCollection.cpp \
+	Theron/Directory.cpp \
 	Theron/EndPoint.cpp \
 	Theron/FallbackHandlerCollection.cpp \
 	Theron/Framework.cpp \
@@ -354,6 +355,7 @@ THERON_OBJECTS = \
 	${BUILD}/BuildDescriptor.o \
 	${BUILD}/Clock.o \
 	${BUILD}/DefaultHandlerCollection.o \
+	${BUILD}/Directory.o \
 	${BUILD}/EndPoint.o \
 	${BUILD}/FallbackHandlerCollection.o \
 	${BUILD}/Framework.o \
@@ -382,6 +384,9 @@ ${BUILD}/Clock.o: Theron/Clock.cpp ${THERON_HEADERS}
 
 ${BUILD}/DefaultHandlerCollection.o: Theron/DefaultHandlerCollection.cpp ${THERON_HEADERS}
 	$(CC) $(CFLAGS) Theron/DefaultHandlerCollection.cpp -o ${BUILD}/DefaultHandlerCollection.o ${INCLUDE_FLAGS}
+
+${BUILD}/Directory.o: Theron/Directory.cpp ${THERON_HEADERS}
+	$(CC) $(CFLAGS) Theron/Directory.cpp -o ${BUILD}/Directory.o ${INCLUDE_FLAGS}
 
 ${BUILD}/EndPoint.o: Theron/EndPoint.cpp ${THERON_HEADERS}
 	$(CC) $(CFLAGS) Theron/EndPoint.cpp -o ${BUILD}/EndPoint.o ${INCLUDE_FLAGS}

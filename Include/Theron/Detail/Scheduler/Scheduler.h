@@ -14,9 +14,9 @@
 #include <Theron/YieldStrategy.h>
 
 #include <Theron/Detail/Containers/List.h>
-#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
+#include <Theron/Detail/Mailboxes/MailboxCollection.h>
 #include <Theron/Detail/Scheduler/IScheduler.h>
 #include <Theron/Detail/Scheduler/MailboxContext.h>
 #include <Theron/Detail/Scheduler/MailboxProcessor.h>
@@ -54,7 +54,7 @@ public:
     Constructor.
     */
     inline explicit Scheduler(
-        Directory<Mailbox> *const mailboxes,
+        MailboxCollection *const mailboxes,
         FallbackHandlerCollection *const fallbackHandlers,
         IAllocator *const messageAllocator,
         MailboxContext *const sharedMailboxContext,
@@ -134,7 +134,7 @@ private:
     inline void ManagerThreadProc();
 
     // Referenced external objects.
-    Directory<Mailbox> *mMailboxes;                     ///< Pointer to external mailbox array.
+    MailboxCollection *mMailboxes;                      ///< Pointer to external collection of serviced mailboxes.
     FallbackHandlerCollection *mFallbackHandlers;       ///< Pointer to external fallback message handler collection.
     IAllocator *mMessageAllocator;                      ///< Pointer to external message memory block allocator.
     MailboxContext *mSharedMailboxContext;              ///< Pointer to external mailbox context shared by all worker threads.
@@ -160,7 +160,7 @@ private:
 
 template <class QueueType>
 inline Scheduler<QueueType>::Scheduler(
-    Directory<Mailbox> *const mailboxes,
+    MailboxCollection *const mailboxes,
     FallbackHandlerCollection *const fallbackHandlers,
     IAllocator *const messageAllocator,
     MailboxContext *const sharedMailboxContext,

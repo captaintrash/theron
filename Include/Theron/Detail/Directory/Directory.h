@@ -3,15 +3,13 @@
 #define THERON_DETAIL_DIRECTORY_DIRECTORY_H
 
 
-#include <new>
-
-#include <Theron/AllocatorManager.h>
 #include <Theron/Assert.h>
 #include <Theron/BasicTypes.h>
 #include <Theron/Defines.h>
-#include <Theron/IAllocator.h>
 
+#include <Theron/Detail/Containers/PageTable.h>
 #include <Theron/Detail/Threading/Mutex.h>
+#include <Theron/Detail/Threading/SpinLock.h>
 
 
 namespace Theron
@@ -21,138 +19,197 @@ namespace Detail
 
 
 /**
-A registry that maps unique indices to addressable entities.
+Reference-counted singleton that makes a collection of registered entities.
 */
-template <class EntryType>
 class Directory
 {
 public:
 
     /**
-    Default constructor.
+    A non-copyable entity that can be registered in a directory.
+    In order to be registered in the directory, types must derive from this class.
     */
-    Directory();
+    class Entity
+    {
+    public:
+
+        inline Entity()
+        {
+        }
+
+    private:
+
+        Entity(const Entity &other);
+        Entity &operator=(const Entity &other);
+    };
 
     /**
-    Destructor.
+    Registers an entity and returns its allocated index.
     */
-    ~Directory();
+    static uint32_t Register(Entity *const entity);
 
     /**
-    Finds and claims a free index for an entity.
+    Deregisters a previously registered entity.
     */
-    uint32_t Allocate(uint32_t index = 0);
+    static void Deregister(const uint32_t index);
+
+    /**
+    Acquires exclusive access to the entity at the given index.
+    Any attempts by other threads to Deregister the entity will block until a subsequent call to Release.
+    */
+    inline static Entity *Acquire(const uint32_t index);
+
+    /**
+    Releases exclusive access to the entity at the given index.
+    */
+    inline static bool Release(const uint32_t index);
+
+private:
+
+    /**
+    An entry in the directory, recording the registration of at most one entity.
+    */
+    class Entry
+    {
+    public:
+
+        /**
+        Default constructor.
+        */
+        inline Entry() :
+          mSpinLock(),
+          mEntity(0),
+          mPinCount(0)
+        {
+        }
+
+        /**
+        Lock the entry, acquiring exclusive access.
+        */
+        THERON_FORCEINLINE void Lock() const
+        {
+            mSpinLock.Lock();
+        }
+
+        /**
+        Unlock the entry, relinquishing exclusive access.
+        */
+        THERON_FORCEINLINE void Unlock() const
+        {
+            mSpinLock.Unlock();
+        }
+
+        /**
+        Deregisters any entity registered at this entry.
+        */
+        THERON_FORCEINLINE void Free()
+        {
+            THERON_ASSERT(mPinCount == 0);
+            mEntity = 0;
+        }
+
+        /**
+        Registers the given entity at this entry.
+        */
+        THERON_FORCEINLINE void SetEntity(Entity *const entity)
+        {
+            THERON_ASSERT(mPinCount == 0);
+            mEntity = entity;
+        }
+
+        /**
+        Returns a pointer to the entity registered at this entry.
+        \return A pointer to the registered entity, or zero if no entity is registered.
+        */
+        THERON_FORCEINLINE Entity *GetEntity() const
+        {
+            return mEntity;
+        }
+
+        /**
+        Pins the entry, preventing the registered entry from being changed.
+        */
+        THERON_FORCEINLINE void Pin()
+        {
+            ++mPinCount;
+        }
+
+        /**
+        Unpins the entry, allowing the registered entry to be changed.
+        */
+        THERON_FORCEINLINE void Unpin()
+        {
+            THERON_ASSERT(mPinCount > 0);
+            --mPinCount;
+        }
+
+        /**
+        Returns true if the entry has been pinned more times than unpinned.
+        */
+        THERON_FORCEINLINE bool IsPinned() const
+        {
+            return (mPinCount > 0);
+        }
+
+    private:
+
+        Entry(const Entry &other);
+        Entry &operator=(const Entry &other);
+
+        mutable SpinLock mSpinLock;                 ///< Thread synchronization object protecting the entry.
+        Entity *mEntity;                            ///< Pointer to the registered entity.
+        uint32_t mPinCount;                         ///< Number of times this entity has been pinned and not unpinned.
+    };
+
+    typedef PageTable<Entry, 128> EntryTable;
 
     /**
     Gets a reference to the entry with the given index.
     The entry contains data about the entity (if any) registered at the index.
     */
-    inline EntryType &GetEntry(const uint32_t index);
+    inline static Entry &Lookup(const uint32_t index);
 
-private:
-
-    static const uint32_t ENTRIES_PER_PAGE = 1024;  ///< Number of entries in each allocated page (power of two!).
-    static const uint32_t MAX_PAGES = 1024;         ///< Maximum number of allocated pages.
-
-    struct Page
-    {
-        EntryType mEntries[ENTRIES_PER_PAGE];       ///< Array of entries making up this page.
-    };
-
-    Directory(const Directory &other);
-    Directory &operator=(const Directory &other);
-
-    mutable Mutex mMutex;                           ///< Ensures thread-safe access to the instance data.
-    uint32_t mNextIndex;                            ///< Auto-incremented index to use for next registered entity.
-    Page *mPages[MAX_PAGES];                        ///< Pointers to allocated pages.
+    static EntryTable *smEntryTable;            ///< Pointer to the singleton page table.
+    static Mutex smMutex;                       ///< Synchronization object protecting access.
+    static uint32_t smReferenceCount;           ///< Counts the number of entities registered.
+    static uint32_t smNextIndex;                 ///< For now we hand out mailboxes consecutively.
 };
 
 
-template <class EntryType>
-inline Directory<EntryType>::Directory() :
-  mMutex(),
-  mNextIndex(0)
+THERON_FORCEINLINE Directory::Entity *Directory::Acquire(const uint32_t index)
 {
-    // Clear the page table.
-    for (uint32_t page = 0; page < MAX_PAGES; ++page)
-    {
-        mPages[page] = 0;
-    }
+    Entity *entity(0);
+    Entry &entry(Lookup(index));
+
+    // Pin the entry and lookup the framework registered at the index.
+    entry.Lock();
+    entry.Pin();
+    entity = entry.GetEntity();
+    entry.Unlock();
+
+    return entity;
 }
 
 
-template <class EntryType>
-inline Directory<EntryType>::~Directory()
+THERON_FORCEINLINE bool Directory::Release(const uint32_t index)
 {
-    IAllocator *const pageAllocator(AllocatorManager::GetCache());
+    Entry &entry(Lookup(index));
 
-    // Free all pages that were allocated.
-    for (uint32_t page = 0; page < MAX_PAGES; ++page)
-    {
-        if (mPages[page])
-        {
-            // Destruct and free.
-            mPages[page]->~Page();
-            pageAllocator->Free(mPages[page], sizeof(Page));            
-        }
-    }
+    // Unpin the entry, allowing it to be changed by other threads.
+    entry.Lock();
+    entry.Unpin();
+    entry.Unlock();
+
+    return true;
 }
 
 
-template <class EntryType>
-inline uint32_t Directory<EntryType>::Allocate(uint32_t index)
+THERON_FORCEINLINE Directory::Entry &Directory::Lookup(const uint32_t index)
 {
-    mMutex.Lock();
+    THERON_ASSERT(smEntryTable);
+    THERON_ASSERT(index);
 
-    // Auto-allocate an index if none was specified.
-    if (index == 0)
-    {
-        // TODO: Avoid in-use indices and re-use freed ones.
-        // Skip index zero as it's reserved for use as the null address.
-        if (++mNextIndex == MAX_PAGES * ENTRIES_PER_PAGE)
-        {
-            mNextIndex = 1;
-        }
-
-        index = mNextIndex;
-    }
-
-    // Allocate the page if it hasn't been allocated already.
-    const uint32_t page(index / ENTRIES_PER_PAGE);
-    if (mPages[page] == 0)
-    {
-        IAllocator *const pageAllocator(AllocatorManager::GetCache());
-        void *const pageMemory(pageAllocator->AllocateAligned(sizeof(Page), THERON_CACHELINE_ALIGNMENT));
-
-        if (pageMemory)
-        {
-            mPages[page] = new (pageMemory) Page();
-        }
-        else
-        {
-            THERON_FAIL_MSG("Out of memory");
-        }
-    }
-
-    mMutex.Unlock();
-
-    return index;
-}
-
-
-template <class EntryType>
-THERON_FORCEINLINE EntryType &Directory<EntryType>::GetEntry(const uint32_t index)
-{
-    // Compute the page and offset.
-    // TODO: Use a mask?
-    const uint32_t page(index / ENTRIES_PER_PAGE);
-    const uint32_t offset(index % ENTRIES_PER_PAGE);
-
-    THERON_ASSERT(page < MAX_PAGES);
-    THERON_ASSERT(offset < ENTRIES_PER_PAGE);
-    THERON_ASSERT(mPages[page]);
-
-    return mPages[page]->mEntries[offset];
+    return *smEntryTable->GetEntry(index);
 }
 
 

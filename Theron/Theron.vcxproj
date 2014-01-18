@@ -25,6 +25,7 @@
     <ClCompile Include="BuildDescriptor.cpp" />
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="DefaultHandlerCollection.cpp" />
+    <ClCompile Include="Directory.cpp" />
     <ClCompile Include="EndPoint.cpp" />
     <ClCompile Include="FallbackHandlerCollection.cpp" />
     <ClCompile Include="Framework.cpp" />
@@ -48,11 +49,10 @@
     <ClInclude Include="..\Include\Theron\Detail\Allocators\Pool.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\List.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\Map.h" />
+    <ClInclude Include="..\Include\Theron\Detail\Containers\PageTable.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\Queue.h" />
     <ClInclude Include="..\Include\Theron\Detail\Debug\BuildDescriptor.h" />
     <ClInclude Include="..\Include\Theron\Detail\Directory\Directory.h" />
-    <ClInclude Include="..\Include\Theron\Detail\Directory\Entry.h" />
-    <ClInclude Include="..\Include\Theron\Detail\Directory\StaticDirectory.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\BlindDefaultHandler.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\BlindFallbackHandler.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\DefaultFallbackHandler.h" />
@@ -70,6 +70,7 @@
     <ClInclude Include="..\Include\Theron\Detail\Handlers\ReceiverHandler.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\ReceiverHandlerCast.h" />
     <ClInclude Include="..\Include\Theron\Detail\Mailboxes\Mailbox.h" />
+    <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MailboxCollection.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\IMessage.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\Message.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\MessageCast.h" />

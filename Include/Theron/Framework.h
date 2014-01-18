@@ -23,10 +23,10 @@ Framework that hosts and executes actors.
 #include <Theron/Detail/Allocators/CachingAllocator.h>
 #include <Theron/Detail/Debug/BuildDescriptor.h>
 #include <Theron/Detail/Directory/Directory.h>
-#include <Theron/Detail/Directory/Entry.h>
 #include <Theron/Detail/Handlers/DefaultFallbackHandler.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
+#include <Theron/Detail/Mailboxes/MailboxCollection.h>
 #include <Theron/Detail/Messages/MessageCreator.h>
 #include <Theron/Detail/Scheduler/Counting.h>
 #include <Theron/Detail/Scheduler/MailboxContext.h>
@@ -107,7 +107,7 @@ be effectively dedicated to particular actors. See
 \note An important point about Framework objects is that they must always
 outlive the actors created within them.
 */
-class Framework : public Detail::Entry::Entity
+class Framework : public Detail::Directory::Entity
 {
 public:
 
@@ -778,7 +778,7 @@ private:
     const Parameters mParams;                               ///< Copy of parameters struct provided on construction.
     uint32_t mIndex;                                        ///< Non-zero index of this framework, unique within the local process.
     Detail::String mName;                                   ///< Name of this framework.
-    Detail::Directory<Detail::Mailbox> mMailboxes;          ///< Per-framework mailbox array.
+    Detail::MailboxCollection mMailboxes;                   ///< Collection of actor mailboxes serviced by this framework.
     Detail::FallbackHandlerCollection mFallbackHandlers;    ///< Registered message handlers run for unhandled messages.
     Detail::DefaultFallbackHandler mDefaultFallbackHandler; ///< Default handler for unhandled messages.
     MessageCache mMessageAllocator;                         ///< Thread-safe per-framework cache of message memory blocks.
@@ -1011,7 +1011,7 @@ THERON_FORCEINLINE bool Framework::SendInternal(
     {
         // Message is addressed to an actor in the sending framework.
         // Get a reference to the destination mailbox.
-        Detail::Mailbox &mailbox(mMailboxes.GetEntry(address.mIndex.mComponents.mIndex));
+        Detail::Mailbox &mailbox(mMailboxes.GetMailbox(address.mIndex.mComponents.mIndex));
 
         // Push the message into the mailbox and schedule the mailbox for processing
         // if it was previously empty, so won't already be scheduled.
