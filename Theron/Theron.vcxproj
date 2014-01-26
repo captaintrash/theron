@@ -29,7 +29,9 @@
     <ClCompile Include="EndPoint.cpp" />
     <ClCompile Include="FallbackHandlerCollection.cpp" />
     <ClCompile Include="Framework.cpp" />
+    <ClCompile Include="GlobalDirectory.cpp" />
     <ClCompile Include="HandlerCollection.cpp" />
+    <ClCompile Include="MailboxCollection.cpp" />
     <ClCompile Include="Receiver.cpp" />
     <ClCompile Include="StringPool.cpp" />
     <ClCompile Include="YieldPolicy.cpp" />
@@ -46,13 +48,14 @@
     <ClInclude Include="..\Include\Theron\Defines.h" />
     <ClInclude Include="..\Include\Theron\Detail\Alignment\MessageAlignment.h" />
     <ClInclude Include="..\Include\Theron\Detail\Allocators\CachingAllocator.h" />
+    <ClInclude Include="..\Include\Theron\Detail\Allocators\PageTable.h" />
     <ClInclude Include="..\Include\Theron\Detail\Allocators\Pool.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\List.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\Map.h" />
-    <ClInclude Include="..\Include\Theron\Detail\Containers\PageTable.h" />
     <ClInclude Include="..\Include\Theron\Detail\Containers\Queue.h" />
     <ClInclude Include="..\Include\Theron\Detail\Debug\BuildDescriptor.h" />
     <ClInclude Include="..\Include\Theron\Detail\Directory\Directory.h" />
+    <ClInclude Include="..\Include\Theron\Detail\Directory\GlobalDirectory.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\BlindDefaultHandler.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\BlindFallbackHandler.h" />
     <ClInclude Include="..\Include\Theron\Detail\Handlers\DefaultFallbackHandler.h" />
@@ -71,6 +74,7 @@
     <ClInclude Include="..\Include\Theron\Detail\Handlers\ReceiverHandlerCast.h" />
     <ClInclude Include="..\Include\Theron\Detail\Mailboxes\Mailbox.h" />
     <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MailboxCollection.h" />
+    <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MessageQueue.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\IMessage.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\Message.h" />
     <ClInclude Include="..\Include\Theron\Detail\Messages\MessageCast.h" />

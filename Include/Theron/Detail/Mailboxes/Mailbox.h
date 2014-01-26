@@ -10,7 +10,7 @@
 
 #include <Theron/Detail/Containers/Queue.h>
 #include <Theron/Detail/Messages/IMessage.h>
-#include <Theron/Detail/Strings/String.h>
+#include <Theron/Detail/Mailboxes/MessageQueue.h>
 #include <Theron/Detail/Threading/SpinLock.h>
 
 
@@ -32,7 +32,7 @@ namespace Detail
 
 
 /**
-An individual mailbox with a specific address.
+An addressable message queue that can receive messages.
 */
 class THERON_PREALIGN(THERON_CACHELINE_ALIGNMENT) Mailbox : public Queue<Mailbox>::Node
 {
@@ -44,87 +44,24 @@ public:
     inline Mailbox();
 
     /**
-    \brief Gets the string name of the mailbox.
-    The name is arbitrary and identifies the actor within the context of the whole system,
-    potentially across multiple connected hosts.
+    Returns the index of this mailbox.
     */
-    inline String GetName() const;
+    inline uint32_t GetIndex() const;
 
     /**
-    Sets the name of the mailbox.
+    Sets the index of this mailbox.
     */
-    inline void SetName(const String &name);
+    inline void SetIndex(const uint32_t index);
 
     /**
-    Lock the mailbox, acquiring exclusive access.
+    Returns a reference to the mailbox's message queue.
     */
-    inline void Lock() const;
+    inline MessageQueue &Queue();
 
     /**
-    Unlock the mailbox, relinquishing exclusive access.
+    Returns a const reference to the mailbox's message queue.
     */
-    inline void Unlock() const;
-
-    /**
-    Returns true if the mailbox contains no messages.
-    */
-    inline bool Empty() const;
-
-    /**
-    Pushes a message into the mailbox.
-    */
-    inline void Push(IMessage *const message);
-
-    /**
-    Peeks at the first message in the mailbox.
-    The message is inspected without actually being removed from the mailbox.
-    \note It's illegal to call this method when the mailbox is empty.
-    */
-    inline IMessage *Front() const;
-
-    /**
-    Pops the first message from the mailbox.
-    \note It's illegal to call this method when the mailbox is empty.
-    */
-    inline IMessage *Pop();
-
-    /**
-    Returns the number of messages currently queued in the mailbox.
-    */
-    inline uint32_t Count() const;
-
-    /**
-    Registers an actor with this mailbox.
-    \note This can't be called while the mailbox is pinned.
-    */
-    inline void RegisterActor(Actor *const actor);
-
-    /**
-    Deregisters the actor registered with this mailbox.
-    \note This can't be called while the mailbox is pinned.
-    */
-    inline void DeregisterActor();
-
-    /**
-    Gets a pointer to the actor registered at this mailbox, if any.
-    \return A pointer to the registered entity, or zero if no entity is registered.
-    */
-    inline Actor *GetActor() const;
-
-    /**
-    Pins the mailbox, preventing the registered actor from being changed.
-    */
-    inline void Pin();
-
-    /**
-    Unpins the mailbox, allowed the registered actor to be changed.
-    */
-    inline void Unpin();
-
-    /**
-    Returns true if the mailbox has been pinned more times than unpinned.
-    */
-    inline bool IsPinned() const;
+    inline const MessageQueue &Queue() const;
 
     /**
     Gets a reference to the timestamp value stored in the mailbox.
@@ -138,130 +75,42 @@ public:
 
 private:
 
-    typedef Queue<IMessage> MessageQueue;
-
-    MessageQueue mQueue;                        ///< Queue of messages in this mailbox.
-    String mName;                               ///< Name of this mailbox.
-    Actor *mActor;                              ///< Pointer to the actor registered with this mailbox, if any.
-    mutable SpinLock mSpinLock;                 ///< Thread synchronization object protecting the mailbox.
-    uint32_t mMessageCount;                     ///< Size of the message queue.
-    uint32_t mPinCount;                         ///< Pinning a mailboxes prevents the actor from being deregistered.
+    uint32_t mIndex;                            ///< Index of this mailbox within the owning framework.
+    MessageQueue mMessageQueue;                 ///< Stores messages queued in the mailbox.
     uint64_t mTimestamp;                        ///< Used for measuring mailbox scheduling latencies.
 
 } THERON_POSTALIGN(THERON_CACHELINE_ALIGNMENT);
 
 
 inline Mailbox::Mailbox() :
-  mQueue(),
-  mName(),
-  mActor(0),
-  mSpinLock(),
-  mMessageCount(0),
-  mPinCount(0),
+  mIndex(0),
+  mMessageQueue(),
   mTimestamp(0)
 {
 }
 
 
-THERON_FORCEINLINE String Mailbox::GetName() const
+THERON_FORCEINLINE uint32_t Mailbox::GetIndex() const
 {
-    return mName;
+    return mIndex;
 }
 
 
-THERON_FORCEINLINE void Mailbox::SetName(const String &name)
+THERON_FORCEINLINE void Mailbox::SetIndex(const uint32_t index)
 {
-    mName = name;
+    mIndex = index;
 }
 
 
-THERON_FORCEINLINE void Mailbox::Lock() const
+THERON_FORCEINLINE MessageQueue &Mailbox::Queue()
 {
-    mSpinLock.Lock();
+    return mMessageQueue;
 }
 
 
-THERON_FORCEINLINE void Mailbox::Unlock() const
+THERON_FORCEINLINE const MessageQueue &Mailbox::Queue() const
 {
-    mSpinLock.Unlock();
-}
-
-
-THERON_FORCEINLINE bool Mailbox::Empty() const
-{
-    return mQueue.Empty();
-}
-
-
-THERON_FORCEINLINE void Mailbox::Push(IMessage *const message)
-{
-    mQueue.Push(message);
-    ++mMessageCount;
-}
-
-
-THERON_FORCEINLINE IMessage *Mailbox::Front() const
-{
-    return mQueue.Front();
-}
-
-
-THERON_FORCEINLINE IMessage *Mailbox::Pop()
-{
-    --mMessageCount;
-    return mQueue.Pop();
-}
-
-
-THERON_FORCEINLINE uint32_t Mailbox::Count() const
-{
-    return mMessageCount;
-}
-
-
-THERON_FORCEINLINE void Mailbox::RegisterActor(Actor *const actor)
-{
-    // Can't register actors while the mailbox is pinned.
-    THERON_ASSERT(mPinCount == 0);
-    THERON_ASSERT(mActor == 0);
-    THERON_ASSERT(actor);
-
-    mActor = actor;
-}
-
-
-THERON_FORCEINLINE void Mailbox::DeregisterActor()
-{
-    // Can't deregister actors while the mailbox is pinned.
-    THERON_ASSERT(mPinCount == 0);
-    THERON_ASSERT(mActor != 0);
-
-    mActor = 0;
-}
-
-
-THERON_FORCEINLINE Actor *Mailbox::GetActor() const
-{
-    return mActor;
-}
-
-
-THERON_FORCEINLINE void Mailbox::Pin()
-{
-    ++mPinCount;
-}
-
-
-THERON_FORCEINLINE void Mailbox::Unpin()
-{
-    THERON_ASSERT(mPinCount > 0);
-    --mPinCount;
-}
-
-
-THERON_FORCEINLINE bool Mailbox::IsPinned() const
-{
-    return (mPinCount > 0);
+    return mMessageQueue;
 }
 
 

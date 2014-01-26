@@ -95,6 +95,12 @@
     <ClCompile Include="Directory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MailboxCollection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GlobalDirectory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Include\Theron\Actor.h">
@@ -337,14 +343,20 @@
     <ClInclude Include="..\Include\Theron\Detail\Strings\StringHash.h">
       <Filter>Header Files\Detail\Strings</Filter>
     </ClInclude>
-    <ClInclude Include="..\Include\Theron\Detail\Containers\PageTable.h">
-      <Filter>Header Files\Detail\Containers</Filter>
-    </ClInclude>
     <ClInclude Include="..\Include\Theron\Detail\Directory\Directory.h">
       <Filter>Header Files\Detail\Directory</Filter>
     </ClInclude>
     <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MailboxCollection.h">
       <Filter>Header Files\Detail\Mailboxes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Mailboxes\MessageQueue.h">
+      <Filter>Header Files\Detail\Mailboxes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Allocators\PageTable.h">
+      <Filter>Header Files\Detail\Allocators</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\Theron\Detail\Directory\GlobalDirectory.h">
+      <Filter>Header Files\Detail\Directory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

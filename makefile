@@ -250,13 +250,14 @@ clean:
 THERON_HEADERS = \
 	Include/Theron/Detail/Alignment/MessageAlignment.h \
 	Include/Theron/Detail/Allocators/CachingAllocator.h \
+	Include/Theron/Detail/Allocators/PageTable.h \
 	Include/Theron/Detail/Allocators/Pool.h \
 	Include/Theron/Detail/Containers/List.h \
 	Include/Theron/Detail/Containers/Map.h \
-	Include/Theron/Detail/Containers/PageTable.h \
 	Include/Theron/Detail/Containers/Queue.h \
 	Include/Theron/Detail/Debug/BuildDescriptor.h \
 	Include/Theron/Detail/Directory/Directory.h \
+	Include/Theron/Detail/Directory/GlobalDirectory.h \
 	Include/Theron/Detail/Handlers/BlindDefaultHandler.h \
 	Include/Theron/Detail/Handlers/BlindFallbackHandler.h \
 	Include/Theron/Detail/Handlers/DefaultFallbackHandler.h \
@@ -275,6 +276,7 @@ THERON_HEADERS = \
     Include/Theron/Detail/Handlers/ReceiverHandlerCast.h \
 	Include/Theron/Detail/Mailboxes/Mailbox.h \
 	Include/Theron/Detail/Mailboxes/MailboxCollection.h \
+	Include/Theron/Detail/Mailboxes/MessageQueue.h \
 	Include/Theron/Detail/Scheduler/BlockingMonitor.h \
 	Include/Theron/Detail/Scheduler/Counting.h \
 	Include/Theron/Detail/Scheduler/IScheduler.h \
@@ -343,7 +345,9 @@ THERON_SOURCES = \
 	Theron/EndPoint.cpp \
 	Theron/FallbackHandlerCollection.cpp \
 	Theron/Framework.cpp \
+	Theron/GlobalDirectory.cpp \
 	Theron/HandlerCollection.cpp \
+	Theron/MailboxCollection.cpp \
 	Theron/Receiver.cpp \
 	Theron/StringPool.cpp \
 	Theron/YieldPolicy.cpp
@@ -359,7 +363,9 @@ THERON_OBJECTS = \
 	${BUILD}/EndPoint.o \
 	${BUILD}/FallbackHandlerCollection.o \
 	${BUILD}/Framework.o \
+	${BUILD}/GlobalDirectory.o \
 	${BUILD}/HandlerCollection.o \
+	${BUILD}/MailboxCollection.o \
 	${BUILD}/Receiver.o \
 	${BUILD}/StringPool.o \
 	${BUILD}/YieldPolicy.o
@@ -399,6 +405,12 @@ ${BUILD}/Framework.o: Theron/Framework.cpp ${THERON_HEADERS}
 
 ${BUILD}/HandlerCollection.o: Theron/HandlerCollection.cpp ${THERON_HEADERS}
 	$(CC) $(CFLAGS) Theron/HandlerCollection.cpp -o ${BUILD}/HandlerCollection.o ${INCLUDE_FLAGS}
+
+${BUILD}/GlobalDirectory.o: Theron/GlobalDirectory.cpp ${THERON_HEADERS}
+	$(CC) $(CFLAGS) Theron/GlobalDirectory.cpp -o ${BUILD}/GlobalDirectory.o ${INCLUDE_FLAGS}
+
+${BUILD}/MailboxCollection.o: Theron/MailboxCollection.cpp ${THERON_HEADERS}
+	$(CC) $(CFLAGS) Theron/MailboxCollection.cpp -o ${BUILD}/MailboxCollection.o ${INCLUDE_FLAGS}
 
 ${BUILD}/Receiver.o: Theron/Receiver.cpp ${THERON_HEADERS}
 	$(CC) $(CFLAGS) Theron/Receiver.cpp -o ${BUILD}/Receiver.o ${INCLUDE_FLAGS}

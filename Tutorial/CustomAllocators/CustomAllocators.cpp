@@ -15,6 +15,12 @@
 #endif //_MSC_VER
 
 
+// We use a static buffer because some Theron objects are only freed
+// at static destruction time, after main() has terminated.
+const unsigned int BUFFER_SIZE(1024 * 1024);
+unsigned char s_buffer[BUFFER_SIZE];
+
+
 // A simple linear allocator implementing Theron::IAllocator.
 // It allocates from a memory buffer, never freeing, until it runs out.
 class LinearAllocator : public Theron::IAllocator
@@ -111,9 +117,7 @@ int main()
 {
     // Construct a LinearAllocator around a memory buffer.
     // Note that the buffer needs to be quite big due to fixed memory overheads inside Theron.
-    const unsigned int BUFFER_SIZE(1024 * 1024);
-    unsigned char *const buffer = new unsigned char[BUFFER_SIZE];
-    LinearAllocator allocator(buffer, BUFFER_SIZE);
+    LinearAllocator allocator(s_buffer, BUFFER_SIZE);
 
     // Set the custom allocator for use by Theron.
     // Note that can only be done once, at start of day.
@@ -136,8 +140,6 @@ int main()
     }
 
     printf("Allocated %d bytes\n", static_cast<int>(allocator.GetBytesAllocated()));
-
-    delete [] buffer;
 }
 
 

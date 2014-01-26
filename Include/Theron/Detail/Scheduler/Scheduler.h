@@ -14,6 +14,7 @@
 #include <Theron/YieldStrategy.h>
 
 #include <Theron/Detail/Containers/List.h>
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
 #include <Theron/Detail/Mailboxes/MailboxCollection.h>
@@ -54,6 +55,7 @@ public:
     Constructor.
     */
     inline explicit Scheduler(
+        Directory *const actorDirectory,
         MailboxCollection *const mailboxes,
         FallbackHandlerCollection *const fallbackHandlers,
         IAllocator *const messageAllocator,
@@ -134,6 +136,7 @@ private:
     inline void ManagerThreadProc();
 
     // Referenced external objects.
+    Directory *mActorDirectory;                         ///< Pointer to external actor registration directory.
     MailboxCollection *mMailboxes;                      ///< Pointer to external collection of serviced mailboxes.
     FallbackHandlerCollection *mFallbackHandlers;       ///< Pointer to external fallback message handler collection.
     IAllocator *mMessageAllocator;                      ///< Pointer to external message memory block allocator.
@@ -160,6 +163,7 @@ private:
 
 template <class QueueType>
 inline Scheduler<QueueType>::Scheduler(
+    Directory *const actorDirectory,
     MailboxCollection *const mailboxes,
     FallbackHandlerCollection *const fallbackHandlers,
     IAllocator *const messageAllocator,
@@ -168,6 +172,7 @@ inline Scheduler<QueueType>::Scheduler(
     const uint32_t processorMask,
     const float threadPriority,
     const YieldStrategy yieldStrategy) :
+  mActorDirectory(actorDirectory),
   mMailboxes(mailboxes),
   mFallbackHandlers(fallbackHandlers),
   mMessageAllocator(messageAllocator),
@@ -203,6 +208,7 @@ inline void Scheduler<QueueType>::Initialize(const uint32_t threadCount)
     // These are used to push mailboxes that still need further processing.
     mSharedMailboxContext->mMessageAllocator = mMessageAllocator;
     mSharedMailboxContext->mFallbackHandlers = mFallbackHandlers;
+    mSharedMailboxContext->mActorDirectory = mActorDirectory;
     mSharedMailboxContext->mScheduler = this;
     mSharedMailboxContext->mQueueContext = &mSharedQueueContext;
 
@@ -298,7 +304,7 @@ inline void Scheduler<QueueType>::Schedule(MailboxContext *const mailboxContext,
     hints.mMessageCount = 0;
     if (sendingMailbox)
     {
-        hints.mMessageCount = sendingMailbox->Count();
+        hints.mMessageCount = sendingMailbox->Queue().Count();
     }
 
     mQueue.Push(queueContext, mailbox, hints);
@@ -523,6 +529,7 @@ inline void Scheduler<QueueType>::ManagerThreadProc()
             threadContext->mUserContext.mMessageCache.SetAllocator(mMessageAllocator);
             threadContext->mUserContext.mMailboxContext.mMessageAllocator = &threadContext->mUserContext.mMessageCache;
             threadContext->mUserContext.mMailboxContext.mFallbackHandlers = mFallbackHandlers;
+            threadContext->mUserContext.mMailboxContext.mActorDirectory = mActorDirectory;
             threadContext->mUserContext.mMailboxContext.mScheduler = this;
             threadContext->mUserContext.mMailboxContext.mQueueContext = &threadContext->mQueueContext;
 

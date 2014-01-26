@@ -7,6 +7,7 @@
 #include <Theron/BasicTypes.h>
 #include <Theron/Defines.h>
 
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
 #include <Theron/Detail/Messages/IMessage.h>
@@ -45,6 +46,7 @@ THERON_FORCEINLINE void MailboxProcessor::Process(WorkerContext *const workerCon
 {
     // Load the context data from the worker thread's mailbox context.
     MailboxContext *const mailboxContext(&workerContext->mMailboxContext);
+    Directory *const actorDirectory(mailboxContext->mActorDirectory);
     FallbackHandlerCollection *const fallbackHandlers(mailboxContext->mFallbackHandlers);
     IAllocator *const messageAllocator(mailboxContext->mMessageAllocator);
 
@@ -54,15 +56,18 @@ THERON_FORCEINLINE void MailboxProcessor::Process(WorkerContext *const workerCon
     // Remember the mailbox we're processing in the context so we can query it.
     mailboxContext->mMailbox = mailbox;
 
-    // Pin the mailbox and get the registered actor and the first queued message.
+    // Lookup the actor registered against the mailbox.
+    // Acquire exclusive access to prevent the actor from being deregistered.
+    const uint32_t mailboxIndex(mailbox->GetIndex());
+    Actor *const actor(static_cast<Actor *>(actorDirectory->Acquire(mailboxIndex)));
+
+    // Get the first queued message.
     // At this point the mailbox shouldn't be enqueued in any other work items,
-    // even if it contains more than one unprocessed message. This ensures that
+    // even if it contains more than one enqueued message. This ensures that
     // each mailbox is only processed by one worker thread at a time.
-    mailbox->Lock();
-    mailbox->Pin();
-    Actor *const actor(mailbox->GetActor());
-    IMessage *const message(mailbox->Front());
-    mailbox->Unlock();
+    mailbox->Queue().Lock();
+    IMessage *const message(mailbox->Queue().Front());
+    mailbox->Queue().Unlock();
 
     // If an actor is registered at the mailbox then process it.
     if (actor)
@@ -79,16 +84,17 @@ THERON_FORCEINLINE void MailboxProcessor::Process(WorkerContext *const workerCon
     // The locking of the mailbox here and in the main scheduling ensures that
     // mailboxes are always enqueued if they have unprocessed messages, but at most
     // once at any time.
-    mailbox->Lock();
-    mailbox->Unpin();
-    mailbox->Pop();
+    mailbox->Queue().Lock();
 
-    if (!mailbox->Empty())
+    mailbox->Queue().Pop();
+    if (!mailbox->Queue().Empty())
     {
         mailboxContext->mScheduler->Schedule(mailboxContext, mailbox);
     }
 
-    mailbox->Unlock();
+    mailbox->Queue().Unlock();
+
+    actorDirectory->Release(mailboxIndex);
 
     // Destroy the message, but only after we've popped it from the queue.
     MessageCreator::Destroy(messageAllocator, message);

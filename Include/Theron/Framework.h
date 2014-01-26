@@ -778,7 +778,8 @@ private:
     const Parameters mParams;                               ///< Copy of parameters struct provided on construction.
     uint32_t mIndex;                                        ///< Non-zero index of this framework, unique within the local process.
     Detail::String mName;                                   ///< Name of this framework.
-    Detail::MailboxCollection mMailboxes;                   ///< Collection of actor mailboxes serviced by this framework.
+    Detail::Directory mActorDirectory;                      ///< Registers actors with mailboxes via their indices.
+    Detail::MailboxCollection mMailboxes;                   ///< Collection of mailboxes serviced by this framework.
     Detail::FallbackHandlerCollection mFallbackHandlers;    ///< Registered message handlers run for unhandled messages.
     Detail::DefaultFallbackHandler mDefaultFallbackHandler; ///< Default handler for unhandled messages.
     MessageCache mMessageAllocator;                         ///< Thread-safe per-framework cache of message memory blocks.
@@ -793,6 +794,7 @@ inline Framework::Framework(const uint32_t threadCount) :
   mParams(threadCount),
   mIndex(0),
   mName(),
+  mActorDirectory(),
   mMailboxes(),
   mFallbackHandlers(),
   mDefaultFallbackHandler(),
@@ -812,6 +814,7 @@ inline Framework::Framework(const Parameters &params) :
   mParams(params),
   mIndex(0),
   mName(),
+  mActorDirectory(),
   mMailboxes(),
   mFallbackHandlers(),
   mDefaultFallbackHandler(),
@@ -831,6 +834,7 @@ inline Framework::Framework(EndPoint &endPoint, const char *const name, const Pa
   mParams(params),
   mIndex(0),
   mName(name),
+  mActorDirectory(),
   mMailboxes(),
   mFallbackHandlers(),
   mDefaultFallbackHandler(),
@@ -1017,17 +1021,17 @@ THERON_FORCEINLINE bool Framework::SendInternal(
         // if it was previously empty, so won't already be scheduled.
         // The message will be destroyed by the worker thread that does the processing,
         // even if it turns out that no actor is registered with the mailbox.
-        mailbox.Lock();
+        mailbox.Queue().Lock();
 
-        const bool schedule(mailbox.Empty());
-        mailbox.Push(message);
+        const bool schedule(mailbox.Queue().Empty());
+        mailbox.Queue().Push(message);
 
         if (schedule)
         {
             mScheduler->Schedule(mailboxContext, &mailbox);
         }
 
-        mailbox.Unlock();
+        mailbox.Queue().Unlock();
 
         return true;
     }

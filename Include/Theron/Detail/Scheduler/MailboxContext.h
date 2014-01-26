@@ -8,6 +8,7 @@
 #include <Theron/IAllocator.h>
 
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
 #include <Theron/Detail/Scheduler/IScheduler.h>
 
@@ -32,6 +33,7 @@ public:
     Constructor.
     */
     inline MailboxContext() :
+      mActorDirectory(0),
       mScheduler(0),
       mQueueContext(0),
       mFallbackHandlers(0),
@@ -42,6 +44,7 @@ public:
     {
     }
 
+    Directory *mActorDirectory;                         ///< Directory associating actors with mailboxes.
     IScheduler *mScheduler;                             ///< Pointer to the associated scheduler.
     void *mQueueContext;                                ///< Pointer to the associated queue context.
     FallbackHandlerCollection *mFallbackHandlers;       ///< Pointer to fallback handlers for undelivered messages.

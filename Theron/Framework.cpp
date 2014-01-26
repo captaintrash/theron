@@ -12,7 +12,7 @@
 #include <Theron/IAllocator.h>
 #include <Theron/Receiver.h>
 
-#include <Theron/Detail/Directory/Directory.h>
+#include <Theron/Detail/Directory/GlobalDirectory.h>
 #include <Theron/Detail/Scheduler/BlockingMonitor.h>
 #include <Theron/Detail/Scheduler/MailboxQueue.h>
 #include <Theron/Detail/Scheduler/NonBlockingMonitor.h>
@@ -43,9 +43,8 @@ void Framework::Initialize()
     // Set up the default fallback handler, which catches and reports undelivered messages.
     SetFallbackHandler(&mDefaultFallbackHandler, &Detail::DefaultFallbackHandler::Handle);
      
-    // Register the framework and get a non-zero index for it, unique within the local process.
-    mIndex = Detail::Directory::Register(this);
-    THERON_ASSERT(mIndex);
+    // Register the framework, claiming a non-zero index that is unique within the local process.
+    mIndex = Detail::sGlobalDirectory.Register(this);
 
     // If the framework name wasn't set explicitly then generate a default name.
     if (mName.IsNull())
@@ -60,7 +59,7 @@ void Framework::Initialize()
 void Framework::Release()
 {
     // Deregister the framework.
-    Detail::Directory::Deregister(mIndex);
+    Detail::sGlobalDirectory.Deregister(mIndex);
 
     mScheduler->Release();
     DestroyScheduler(mScheduler);
@@ -97,6 +96,7 @@ Detail::IScheduler *Framework::CreateScheduler()
     if (mParams.mYieldStrategy == YIELD_STRATEGY_CONDITION)
     {
         return new (schedulerMemory) BlockingScheduler(
+            &mActorDirectory,
             &mMailboxes,
             &mFallbackHandlers,
             &mMessageAllocator,
@@ -109,6 +109,7 @@ Detail::IScheduler *Framework::CreateScheduler()
     else
     {
         return new (schedulerMemory) NonBlockingScheduler(
+            &mActorDirectory,
             &mMailboxes,
             &mFallbackHandlers,
             &mMessageAllocator,
@@ -132,9 +133,10 @@ void Framework::DestroyScheduler(Detail::IScheduler *const scheduler)
 
 void Framework::RegisterActor(Actor *const actor, const char *const name)
 {
-    // Allocate an unused mailbox.
-    const uint32_t mailboxIndex(mMailboxes.AllocateMailbox());
-    Detail::Mailbox &mailbox(mMailboxes.GetMailbox(mailboxIndex));
+    // TODO: What happens if a message arrives at the mailbox before we've set it up?
+    // Register the actor with the directory and allocate the mailbox with that index.
+    const uint32_t mailboxIndex(mActorDirectory.Register(actor));
+    mMailboxes.AllocateMailbox(mailboxIndex);
 
     // Use the provided name for the actor if one was provided.
     Detail::String mailboxName(name);
@@ -159,12 +161,6 @@ void Framework::RegisterActor(Actor *const actor, const char *const name)
 
         mailboxName = Detail::String(scopedName);
     }
-
-    // Name the mailbox and register the actor.
-    mailbox.Lock();
-    mailbox.SetName(mailboxName);
-    mailbox.RegisterActor(actor);
-    mailbox.Unlock();
 
     // Create the unique address of the mailbox.
     // Its a pair comprising the framework index and the mailbox index within the framework.
@@ -206,27 +202,7 @@ void Framework::DeregisterActor(Actor *const actor)
 
     // Deregister the actor, so that the worker threads will leave it alone.
     const uint32_t mailboxIndex(address.AsInteger());
-    Detail::Mailbox &mailbox(mMailboxes.GetMailbox(mailboxIndex));
-
-    // If the entry is pinned then we have to wait for it to be unpinned.
-    bool deregistered(false);
-    uint32_t backoff(0);
-
-    while (!deregistered)
-    {
-        mailbox.Lock();
-
-        if (!mailbox.IsPinned())
-        {
-            mailbox.DeregisterActor();
-            deregistered = true;
-        }
-
-        mailbox.Unlock();
-
-        Detail::Utils::Backoff(backoff);
-    }
-
+    mActorDirectory.Deregister(mailboxIndex);
     mMailboxes.FreeMailbox(mailboxIndex);
 }
 
@@ -241,7 +217,7 @@ bool Framework::DeliverWithinLocalProcess(Detail::IMessage *const message, const
     if (targetFrameworkIndex == 0)
     {
         // Get the receiver registered at the addressed index.
-        Receiver *const receiver(static_cast<Receiver *>(Detail::Directory::Acquire(index.mComponents.mIndex)));
+        Receiver *const receiver(static_cast<Receiver *>(Detail::sGlobalDirectory.Acquire(index.mComponents.mIndex)));
 
         // If a receiver is registered at the mailbox then deliver the message to it.
         if (receiver)
@@ -250,7 +226,7 @@ bool Framework::DeliverWithinLocalProcess(Detail::IMessage *const message, const
         }
 
         // Release the receiver, allowing it to be deregistered by other threads.
-        Detail::Directory::Release(index.mComponents.mIndex);
+        Detail::sGlobalDirectory.Release(index.mComponents.mIndex);
 
         return (receiver != 0);
     }
@@ -258,7 +234,7 @@ bool Framework::DeliverWithinLocalProcess(Detail::IMessage *const message, const
     bool delivered(false);
 
     // Get the framework registered at the addressed index.
-    Framework *const framework(static_cast<Framework *>(Detail::Directory::Acquire(index.mComponents.mFramework)));
+    Framework *const framework(static_cast<Framework *>(Detail::sGlobalDirectory.Acquire(index.mComponents.mFramework)));
 
     // If a framework is registered at this index then forward the message to it.
     if (framework)
@@ -269,7 +245,7 @@ bool Framework::DeliverWithinLocalProcess(Detail::IMessage *const message, const
     }
 
     // Release the framework, allowing it to be deregistered by other threads.
-    Detail::Directory::Release(index.mComponents.mFramework);
+    Detail::sGlobalDirectory.Release(index.mComponents.mFramework);
 
     return delivered;
 }

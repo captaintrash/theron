@@ -31,7 +31,7 @@ used to name official releases. Its definition can't be overridden by the user.
 */
 
 
-#define THERON_VERSION "6.01"
+#define THERON_VERSION "6.00"
 
 
 /**

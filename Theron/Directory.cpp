@@ -18,41 +18,49 @@ namespace Detail
 {
 
 
-Directory::EntryTable *Directory::smEntryTable = 0;
-Mutex Directory::smMutex;
-uint32_t Directory::smReferenceCount = 0;
-uint32_t Directory::smNextIndex = 0;
+Directory::Directory() :
+  mEntryTable(),
+  mMutex(),
+  mNextIndex(0),
+  mFreeList(0)
+{
+}
+
+
+Directory::~Directory()
+{
+}
 
 
 uint32_t Directory::Register(Entity *const entity)
 {
-    smMutex.Lock();
+    uint32_t index(0);
+    Entry *entry(0);
 
-    // Create the singleton instance if this is the first reference.
-    if (smReferenceCount++ == 0)
+    mMutex.Lock();
+
+    // Take a previously freed entry from the free list if available.
+    if (mFreeList)
     {
-        IAllocator *const allocator(AllocatorManager::GetCache());
-        void *const memory(allocator->AllocateAligned(sizeof(EntryTable), THERON_CACHELINE_ALIGNMENT));
-
-        if (memory == 0)
-        {
-            return 0;
-        }
-
-        smEntryTable = new (memory) EntryTable();
+        entry = mFreeList;
+        mFreeList = mFreeList->mNextFree;
+        entry->mNextFree = 0;
+        index = entry->mIndex;
+    }
+    else
+    {
+        // Indices are offset by one to skip zero, which is reserved for null.
+        index = ++mNextIndex;
+        void *const memory(mEntryTable.AllocateEntry(index));
+        entry = new (memory) Entry();
+        entry->mIndex = index;
     }
 
-    THERON_ASSERT(smEntryTable);
+    entry->mSpinLock.Lock();
+    entry->mEntity = entity;
+    entry->mSpinLock.Unlock();
 
-    // Allocate and initialize the entry.
-    // Indices are offset by one to skip zero, which is reserved for null.
-    const uint32_t index(++smNextIndex);
-    Entry &entry(*smEntryTable->GetEntry(index));
-    entry.Lock();
-    entry.SetEntity(entity);
-    entry.Unlock();
-
-    smMutex.Unlock();
+    mMutex.Unlock();
 
     return index;
 }
@@ -60,38 +68,23 @@ uint32_t Directory::Register(Entity *const entity)
 
 void Directory::Deregister(const uint32_t index)
 {
-    smMutex.Lock();
+    mMutex.Lock();
 
-    THERON_ASSERT(smEntryTable);
     THERON_ASSERT(index);
 
-    // Clear the entry.
-    // If the entry is pinned then we have to wait for it to be unpinned.
-    Entry &entry(*smEntryTable->GetEntry(index));
+    // Clear the entry. If the entry is locked then we have to wait for it to be unlocked.
+    // This ensures that entities can't be deregistered while they're being processed.
+    Entry *const entry(reinterpret_cast<Entry *>(mEntryTable.GetEntry(index)));
 
-    bool deregistered(false);
-    while (!deregistered)
-    {
-        entry.Lock();
+    entry->mSpinLock.Lock();
+    entry->mEntity = 0;
+    entry->mSpinLock.Unlock();
 
-        if (!entry.IsPinned())
-        {
-            entry.Free();
-            deregistered = true;
-        }
+    // Return the entry to the free list for reuse.
+    entry->mNextFree = mFreeList;
+    mFreeList = entry;
 
-        entry.Unlock();
-    }
-
-    // Destroy the singleton instance if this was the last reference.
-    if (--smReferenceCount == 0)
-    {
-        IAllocator *const allocator(AllocatorManager::GetCache());
-        smEntryTable->~EntryTable();
-        allocator->Free(smEntryTable, sizeof(EntryTable));
-    }
-
-    smMutex.Unlock();
+    mMutex.Unlock();
 }
 
 

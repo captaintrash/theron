@@ -7,38 +7,42 @@
 #include <Theron/BasicTypes.h>
 #include <Theron/Defines.h>
 
-#include <Theron/Detail/Containers/PageTable.h>
+#include <Theron/Detail/Allocators/PageTable.h>
 #include <Theron/Detail/Mailboxes/Mailbox.h>
+#include <Theron/Detail/Threading/Mutex.h>
 
 
 namespace Theron
 {
+
+
+class Actor;
+
+
 namespace Detail
 {
 
 
 /**
 A collection of addressable mailboxes.
-The point of this class is really just to hide the implementation.
 */
 class MailboxCollection
 {
 public:
 
-    inline MailboxCollection();
-
     /**
-    Allocates a mailbox in the collection and returns its index.
+    Allocates the mailbox with the given index.
     */
-    inline uint32_t AllocateMailbox();
+    void AllocateMailbox(const uint32_t index);
 
     /**
     Frees the mailbox with the given index.
     */
-    inline void FreeMailbox(const uint32_t index);
+    void FreeMailbox(const uint32_t index);
 
     /**
     Gets a reference to the mailbox with the given index.
+    The mailbox must have been previously allocated.
     */
     inline Mailbox &GetMailbox(const uint32_t index);
 
@@ -46,32 +50,15 @@ private:
 
     typedef PageTable<Mailbox, 1024> MailboxTable;
 
-    MailboxTable mMailboxTable;
-    uint32_t mNextIndex;
+    Mutex mMutex;                   ///< Protects access to allocation and freeing of mailboxes.
+    MailboxTable mMailboxTable;     ///< Paged mailbox allocator.
 };
-
-
-inline MailboxCollection::MailboxCollection() : mNextIndex(0)
-{
-}
-
-
-THERON_FORCEINLINE uint32_t MailboxCollection::AllocateMailbox()
-{
-    // Indices are offset by one to skip zero, which is reserved for null.
-    return ++mNextIndex;
-}
-
-
-THERON_FORCEINLINE void MailboxCollection::FreeMailbox(const uint32_t /*index*/)
-{
-}
 
 
 THERON_FORCEINLINE Mailbox &MailboxCollection::GetMailbox(const uint32_t index)
 {
     THERON_ASSERT(index);
-    return *mMailboxTable.GetEntry(index);
+    return *reinterpret_cast<Mailbox *>(mMailboxTable.GetEntry(index));
 }
 
 

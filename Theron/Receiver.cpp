@@ -11,7 +11,7 @@
 #include <Theron/EndPoint.h>
 #include <Theron/Receiver.h>
 
-#include <Theron/Detail/Directory/Directory.h>
+#include <Theron/Detail/Directory/GlobalDirectory.h>
 #include <Theron/Detail/Network/Index.h>
 #include <Theron/Detail/Network/NameGenerator.h>
 #include <Theron/Detail/Strings/String.h>
@@ -55,8 +55,8 @@ Receiver::~Receiver()
 
 void Receiver::Initialize()
 {
-    // Register this receiver, claiming a unique address for this receiver.
-    const uint32_t receiverIndex(Detail::Directory::Register(this));
+    // Register the receiver, claiming a non-zero index that is unique within the local process.
+    const uint32_t receiverIndex(Detail::sGlobalDirectory.Register(this));
 
     if (mName.IsNull())
     {
@@ -114,7 +114,7 @@ void Receiver::Release()
     }
 
     // Deregister the receiver, so that the worker threads will leave it alone.
-    Detail::Directory::Deregister(address.AsInteger());
+    Detail::sGlobalDirectory.Deregister(address.AsInteger());
 
     mCondition.GetMutex().Lock();
 

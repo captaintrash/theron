@@ -267,7 +267,7 @@ THERON_FORCEINLINE void MailboxQueue<MonitorType>::Push(
 #endif // THERON_ENABLE_COUNTERS
 
     // Update the maximum mailbox queue length seen by this thread.
-    Counting::Raise(context->mCounters[COUNTER_MAILBOX_QUEUE_MAX].mValue, mailbox->Count());
+    Counting::Raise(context->mCounters[COUNTER_MAILBOX_QUEUE_MAX].mValue, mailbox->Queue().Count());
 
     // Choose whether to push the scheduled mailbox to the calling thread's
     // local queue (if the calling thread is a worker thread executing a message

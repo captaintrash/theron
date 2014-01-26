@@ -24,6 +24,7 @@ Actor baseclass.
 #include <Theron/Framework.h>
 #include <Theron/IAllocator.h>
 
+#include <Theron/Detail/Directory/Directory.h>
 #include <Theron/Detail/Handlers/DefaultHandlerCollection.h>
 #include <Theron/Detail/Handlers/FallbackHandlerCollection.h>
 #include <Theron/Detail/Handlers/HandlerCollection.h>
@@ -91,7 +92,7 @@ abstraction. However this should be avoided, since it results in ugly code and
 shared memory issues, reintroducing the need for traditional thread synchronization.
 Resist the temptation to add a method to an actor class and add a message instead.
 */
-class Actor
+class Actor : public Detail::Directory::Entity
 {
 public:
 
@@ -767,7 +768,7 @@ THERON_FORCEINLINE uint32_t Actor::GetNumQueuedMessages() const
     Framework &framework(GetFramework());
     const Detail::Mailbox &mailbox(framework.mMailboxes.GetMailbox(address.AsInteger()));
 
-    return mailbox.Count();
+    return mailbox.Queue().Count();
 }
 
 
